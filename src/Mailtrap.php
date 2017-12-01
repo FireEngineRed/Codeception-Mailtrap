@@ -275,4 +275,43 @@ class Mailtrap extends Module
 
         $this->assertEquals($bool, count($attachments) > 0);
     }
+
+
+    public function getTestEmailAddress()
+    {
+        $testEmailAddress = $this->config['testEmailAddress'];
+
+        return $testEmailAddress;
+    }
+
+    /**
+     * Get the most recent message of the default inbox.
+     * Added a loop that will check the inbox every 5 seconds until the message arrives
+     * with a max wait of 1 minute
+     * @return array
+     */
+    public function searchForMessage($emailSearchForString, $inboxID)
+    {
+        $counter = 0;
+        if ($inboxID != ''){
+            do {
+                sleep(1);
+                $counter++;
+                echo "Counter = " . $counter;
+                $messages = $this->client->get("inboxes/$inboxID/messages?search=".$emailSearchForString)->getBody();
+                $messages = json_decode($messages, true);
+            } while ($counter < 90 || $messages == Null);
+
+
+        } else {
+            do {
+                sleep(1);
+                $counter++;
+                echo "Counter = " . $counter;
+                $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages?search=".$emailSearchForString)->getBody();
+                $messages = json_decode($messages, true);
+            } while ($counter < 90 || $messages == Null);
+        }
+        return array_shift($messages);
+    }
 }
