@@ -4,7 +4,6 @@ namespace Codeception\Module;
 
 use Codeception\Module;
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Stream;
 
 /**
  * This module allows you to test emails using Mailtrap <https://mailtrap.io>.
@@ -24,7 +23,6 @@ use GuzzleHttp\Psr7\Stream;
  *
  * * client_id: `string`, default `` - Your mailtrap API key.
  * * inbox_id: `string`, default `` - The inbox ID to use for the tests
- * * cleanup: `boolean`, default `true` - Clean the inbox after each scenario
  *
  * ## API
  *
@@ -45,7 +43,7 @@ class Mailtrap extends Module
     /**
      * @var array
      */
-    protected $config = ['client_id' => null, 'inbox_id' => null, 'cleanup' => true];
+    protected $config = ['client_id' => null, 'inbox_id' => null];
 
     /**
      * @var array
@@ -72,12 +70,10 @@ class Mailtrap extends Module
      *
      * @param \Codeception\TestInterface $test
      */
-    public function _after(\Codeception\TestInterface $test)
-    {
-        if ($this->config['cleanup']) {
-            $this->cleanInbox();
-        }
-    }
+    // public function _after(\Codeception\TestInterface $test)
+    // {
+    //     $this->cleanInbox();
+    // }
 
     /**
      * Clean all the messages from inbox.
@@ -127,7 +123,6 @@ class Mailtrap extends Module
                 echo " Counter = " . $counter . " : ";
                 $messages = $this->client->get("inboxes/$inboxID/messages?search=".$emailSearchForString)->getBody();
                 $messages = json_decode($messages, true);
-
             } while ($counter < 60 && $messages == Null);
 
 
@@ -135,10 +130,9 @@ class Mailtrap extends Module
             do {
                 sleep(1);
                 $counter++;
-                echo " Counter = " . $counter . " : ";
+                echo " Counter = " . $counter;
                 $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages?search=".$emailSearchForString)->getBody();
                 $messages = json_decode($messages, true);
-
             } while ($counter < 60 && $messages == Null);
         }
         return array_shift($messages);
@@ -161,10 +155,6 @@ class Mailtrap extends Module
     public function fetchLastMessage()
     {
         $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages")->getBody();
-        if ($messages instanceof Stream) {
-            $messages = $messages->getContents();
-        }
-
         $messages = json_decode($messages, true);
 
         return array_shift($messages);
@@ -179,7 +169,6 @@ class Mailtrap extends Module
     {
         $email = $this->fetchLastMessage();
         $response = $this->client->get("inboxes/{$this->config['inbox_id']}/messages/{$email['id']}/attachments")->getBody();
-
         return json_decode($response, true);
     }
 
@@ -298,29 +287,5 @@ class Mailtrap extends Module
     {
         $email = $this->fetchLastMessage();
         $this->assertContains($expected, $email['html_body'], 'Email body contains HTML');
-    }
-
-    /**
-     * Look for an attachment on the most recent email.
-     *
-     * @param $count
-     */
-    public function seeAttachments($count)
-    {
-        $attachments = $this->fetchAttachmentsOfLastMessage();
-
-        $this->assertEquals($count, count($attachments));
-    }
-
-    /**
-     * Look for an attachment on the most recent email.
-     *
-     * @param $bool
-     */
-    public function seeAnAttachment($bool)
-    {
-        $attachments = $this->fetchAttachmentsOfLastMessage();
-
-        $this->assertEquals($bool, count($attachments) > 0);
     }
 }
