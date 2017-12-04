@@ -89,6 +89,13 @@ class Mailtrap extends Module
         $this->client->patch("inboxes/{$this->config['inbox_id']}/clean");
     }
 
+    public function getTestEmailAddress()
+    {
+        $testEmailAddress = $this->config['testEmailAddress'];
+
+        return $testEmailAddress;
+    }
+
     /**
      * Check if the latest email received contains $params.
      *
@@ -110,6 +117,47 @@ class Mailtrap extends Module
      *
      * @return array
      */
+    public function searchForMessage($emailSearchForString, $inboxID)
+    {
+        $counter = 0;
+        if ($inboxID != ''){ // test sent a specific email box to search
+            do {
+                sleep(1);
+                $counter++;
+                echo " Counter = " . $counter . " : ";
+                $messages = $this->client->get("inboxes/$inboxID/messages?search=".$emailSearchForString)->getBody();
+                $messages = json_decode($messages, true);
+
+            } while ($counter < 60 && $messages == Null);
+
+
+        } else { // Use the config email box
+            do {
+                sleep(1);
+                $counter++;
+                echo " Counter = " . $counter . " : ";
+                $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages?search=".$emailSearchForString)->getBody();
+                $messages = json_decode($messages, true);
+
+            } while ($counter < 60 && $messages == Null);
+        }
+        return array_shift($messages);
+    }
+
+    /**
+     * Delete a specific message from the inbox.  Must pass in the message ID to delete
+     *
+     * @return array
+     */
+    public function deleteMessage($messageID, $inboxID)
+    {
+        if($inboxID != ''){
+            $messages = $this->client->delete("inboxes/$inboxID/messages/".$messageID);
+        } else {
+            $messages = $this->client->delete("inboxes/{$this->config['inbox_id']}/messages/".$messageID);
+        }
+    }
+
     public function fetchLastMessage()
     {
         $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages")->getBody();
@@ -274,44 +322,5 @@ class Mailtrap extends Module
         $attachments = $this->fetchAttachmentsOfLastMessage();
 
         $this->assertEquals($bool, count($attachments) > 0);
-    }
-
-
-    public function getTestEmailAddress()
-    {
-        $testEmailAddress = $this->config['testEmailAddress'];
-
-        return $testEmailAddress;
-    }
-
-    /**
-     * Get the most recent message of the default inbox.
-     * Added a loop that will check the inbox every 5 seconds until the message arrives
-     * with a max wait of 1 minute
-     * @return array
-     */
-    public function searchForMessage($emailSearchForString, $inboxID)
-    {
-        $counter = 0;
-        if ($inboxID != ''){
-            do {
-                sleep(1);
-                $counter++;
-                echo "Counter = " . $counter;
-                $messages = $this->client->get("inboxes/$inboxID/messages?search=".$emailSearchForString)->getBody();
-                $messages = json_decode($messages, true);
-            } while ($counter < 90 || $messages == Null);
-
-
-        } else {
-            do {
-                sleep(1);
-                $counter++;
-                echo "Counter = " . $counter;
-                $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages?search=".$emailSearchForString)->getBody();
-                $messages = json_decode($messages, true);
-            } while ($counter < 90 || $messages == Null);
-        }
-        return array_shift($messages);
     }
 }
