@@ -68,18 +68,22 @@ class Mailtrap extends Module
     /**
      * Clean the inbox after each scenario.
      *
-     * @param \Codeception\TestInterface $test
+     * @param \Codeception\TestCase $test
      */
-    // public function _after(\Codeception\TestInterface $test)
-    // {
-    //     $this->cleanInbox();
-    // }
+
+    /*
+    public function _after(\Codeception\TestCase $test)
+    {
+        $this->cleanInbox();
+    }
+    */
 
     /**
      * Clean all the messages from inbox.
      *
      * @return void
      */
+
     public function cleanInbox()
     {
         $this->client->patch("inboxes/{$this->config['inbox_id']}/clean");
@@ -120,13 +124,13 @@ class Mailtrap extends Module
             do {
                 sleep(1);
                 $counter++;
-                echo " Counter = " . $counter . " : ";
+                echo " Counter = " . $counter . " : ";              
                 $messages = $this->client->get("inboxes/$inboxID/messages?search=".$emailSearchForString)->getBody();
                 $messages = json_decode($messages, true);
             } while ($counter < 60 && $messages == Null);
 
-
-        } else { // Use the config email box
+           
+       } else { // Use the config email box
             do {
                 sleep(1);
                 $counter++;
@@ -135,28 +139,6 @@ class Mailtrap extends Module
                 $messages = json_decode($messages, true);
             } while ($counter < 60 && $messages == Null);
         }
-        return array_shift($messages);
-    }
-
-    /**
-     * Delete a specific message from the inbox.  Must pass in the message ID to delete
-     *
-     * @return array
-     */
-    public function deleteMessage($messageID, $inboxID)
-    {
-        if($inboxID != ''){
-            $messages = $this->client->delete("inboxes/$inboxID/messages/".$messageID);
-        } else {
-            $messages = $this->client->delete("inboxes/{$this->config['inbox_id']}/messages/".$messageID);
-        }
-    }
-
-    public function fetchLastMessage()
-    {
-        $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages")->getBody();
-        $messages = json_decode($messages, true);
-
         return array_shift($messages);
     }
 
@@ -171,6 +153,47 @@ class Mailtrap extends Module
         $response = $this->client->get("inboxes/{$this->config['inbox_id']}/messages/{$email['id']}/attachments")->getBody();
         return json_decode($response, true);
     }
+    /**
+     * Gets the attachments in a specific message.
+     * Requires a message ID, inboxID is optional
+     * @return array
+     */
+    public function fetchAttachmentsOfMessage($inboxID, $messageID)
+    {
+        if ($inboxID != ''){ // test sent a specific email box to search
+            $messages = $this->client->get("inboxes/$inboxID/messages/$messageID/attachments")->getBody();
+            $messages = json_decode($messages, true);           
+       } else { // Use the config email box
+            $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages/$messageID/attachments")->getBody();
+            $messages = json_decode($messages, true);
+        }
+        return array_shift($messages);
+    }
+
+
+    /**
+     * Delete a specific message from the inbox.  Must pass in the message ID to delete
+     *
+     * @return array
+     */
+    public function deleteMessage($messageID, $inboxID)
+    {
+        if($inboxID != ''){
+            $messages = $this->client->delete("inboxes/$inboxID/messages/".$messageID);
+        } else {
+            $messages = $this->client->delete("inboxes/{$this->config['inbox_id']}/messages/".$messageID); 
+        }
+    }
+
+    public function fetchLastMessage()
+    {
+        $messages = $this->client->get("inboxes/{$this->config['inbox_id']}/messages")->getBody();
+        $messages = json_decode($messages, true);
+
+        return array_shift($messages);
+    }
+
+     
 
     /**
      * Check if the latest email received is from $senderEmail.
